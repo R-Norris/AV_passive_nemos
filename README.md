@@ -1,6 +1,6 @@
 # Passive Audiovisual Neural Coding GLM Pipeline (`AV_passive_nemos`)
 
-A publication-standard Poisson Generalized Linear Model (GLM) pipeline built on [NeMoS](https://github.com/flatironinstitute/nemos) for characterizing auditory, visual, and multisensory temporal receptive fields and coherence processing from spike data collected from auditory cortex (primary, secondary and tertiary) and neighboring secondary visual cortex.
+A Poisson Generalized Linear Model (GLM) pipeline built on [NeMoS](https://github.com/flatironinstitute/nemos) for characterizing auditory, visual, and multisensory temporal response functions and coherence processing from spike data collected from auditory cortex (primary, secondary and tertiary) and neighboring secondary visual cortex.
 
 ---
 
@@ -26,7 +26,7 @@ AV_passive_nemos/
 │   ├── diagnostics/             # Channel QC summaries
 │   ├── clean_glm/               # Out-of-sample GLM model fits & dashboards
 │   └── sense_check_plots/       # Stacked stimulus-envelope sense-check PSTHs
-├── docs/images/                 # Methodological diagrams and example outputs
+├── docs/images/                 # Methods diagrams and example plots
 ├── pyproject.toml               # Standard Python project configuration
 └── uv.lock                      # Exact dependency lockfile for reproducible builds
 ```
@@ -82,13 +82,10 @@ pip install -e .
 ```
 
 > **Note on CPU vs. GPU (No WSL2 or CUDA Setup Needed):**  
-> This pipeline runs natively on **CPU** across Windows, macOS, and Linux (`~60–90 s` per channel for the full 5-fold CV + 13-factor LOFO evaluation). You do **not** need to configure CUDA or Windows Subsystem for Linux (WSL2) for JAX GPU support to replicate these analyses:
-> * JAX only provides official GPU wheels for Linux, whereas this single-neuron GLM operates on a compact `~380,000 × 69` matrix in double precision (`float64`) for numerical stability in L-BFGS and sandwich Hessians.
-> * Consumer GPUs throttle `float64` operations, and sequential L-BFGS iterations gain minimal speedup over modern multi-core CPUs at this problem size. GPU acceleration is primarily beneficial only if scaling to large, coupled multi-neuron `PopulationGLM` fits with thousands of predictors.
+> This pipeline runs natively on **CPU** across Windows, macOS, and Linux (`~60–90 s` per channel for the full 5-fold CV + 13-factor LOFO evaluation). You do **not** need to configure CUDA or Windows Subsystem for Linux (WSL2) for JAX GPU support to replicate these analyses. For single neuron GLMs run here the performance improvement from JAX GPU support would be marginal.
 
----
 
-## Methodological Overview: Temporal Basis Functions
+## GLM Fit Methods: Temporal Basis Functions
 
 To capture continuous neural response dynamics up to 200 ms without overparameterizing the model, every continuous stimulus stream is convolved with a **causal log-stretched raised-cosine basis**:
 
@@ -110,12 +107,12 @@ This gives high temporal resolution (narrow basis peaks) at early post-stimulus 
 3. **Multisensory Synchrony & Coherence (3 groups):**
    * `AV Onset Coinc (+dA×+dL)` (4 basis funcs, 0–200 ms): Active strictly at synchronous auditory and visual rises. Positive weights reflect super-additive burst facilitation; negative weights reflect sub-additive divisive normalization.
    * `AV Offset Coinc (-dA×-dL)` (4 basis funcs, 0–200 ms): Active strictly at synchronous auditory and visual drops.
-   * `AV Coherence (Coh vs Inc)` (1 df): Tonic shift across the $[0, 3\text{ s})$ presentation window testing for sustained rate shifts (e.g., cross-modal LFP entrainment).
-4. **Experimental Contrasts on $[0, 3\text{ s})$:**
+   * `AV Coherence (Coh vs Inc)` (1 df): Tonic shift across the [0, 3 s) presentation window testing for sustained rate shifts (e.g., cross-modal LFP phase alignment).
+4. **Experimental Contrasts on [0, 3 s):**
    * `Sustained Stim`: Boxcar contrast vs. pre/post silence (absorbs tonic adaptation).
    * `Vowel (/u/ vs /a/)`: Centered spectral contrast.
    * `Vowel F0 (195 vs 175 Hz)`: Fundamental frequency contrast.
-   * `LED Regime (vBase, vMax)`: 2×2 luminance pedestal/ceiling contrasts including flash-gain interactions.
+   * `LED Regime (vBase, vMax)`: 2×2 luminance baseline/ceiling contrasts including flash-gain interactions.
 5. **Nuisance Controls:** StimSet pair deviation contrasts and recording session block drift indicators.
 
 ---
@@ -123,21 +120,21 @@ This gives high temporal resolution (narrow basis peaks) at early post-stimulus 
 ## Example Model Outputs
 
 The pipeline uses a **two-stage conservative decision rule**:
-* **Primary Gate:** A factor must significantly improve out-of-sample spike prediction on unseen trials in 5-fold cross-validation ($\Delta\text{LL}_{\text{CV}} > 0$, paired Wilcoxon $q_{\text{LOFO}} < 0.05$ with Benjamini–Hochberg FDR correction).
-* **Secondary Gate:** Omnibus trial-clustered Huber-White sandwich Group Wald test ($q_{\text{Wald}} < 0.05$).
+* **Primary Gate:** A factor must significantly improve out-of-sample spike prediction on unseen trials in 5-fold cross-validation (ΔLL<sub>CV</sub> > 0, paired Wilcoxon *q*<sub>LOFO</sub> < 0.05 with Benjamini–Hochberg FDR correction).
+* **Secondary Gate:** Omnibus trial-clustered Huber-White sandwich Group Wald test (*q*<sub>Wald</sub> < 0.05).
 
 ---
 
 ### Example 1: Purely Auditory Neuron (Middle Ectosylvian Gyrus, MEG)
 *Record: `F1812_Nala` Rec_A Channel 26*
 
-This recording site in primary auditory cortex exhibits sharp acoustic onset sensitivity, rapid envelope tracking, and vowel selectivity (/u/ vs. /a/), while remaining completely unresponsive to visual flashes, LED luminance, and audiovisual synchrony terms (faded out as non-significant).
+This recording site in primary auditory cortex exhibits sharp acoustic onset sensitivity, rapid envelope tracking, and vowel selectivity (/u/ vs. /a/), while remaining completely unresponsive to visual flashes, LED luminance, and audiovisual synchrony terms (factors faded out in plots to indicate non-significant).
 
 ![Auditory Neuron Example](docs/images/F1812_Nala_Rec_A_C26_auditory_example.png)
 
-* **Panel A:** Directional effect sizes ($\beta \pm 95\%$ trial-clustered CIs). Solid colored bars indicate confirmed biological drivers ($q < 0.05$); faded bars indicate non-drivers.
-* **Panel B:** Causal 0–200 ms temporal kernels $h(\tau)$. Auditory onsets trigger a sharp response peak at 20 ms.
-* **Panel C:** Held-out cross-validated information loss ($\text{mbits/spike}$) when each factor is dropped from the model (LOFO).
+* **Panel A:** Directional effect sizes (β ± 95% trial-clustered CIs). Solid colored bars indicate confirmed biological drivers (*q* < 0.05); faded bars indicate non-drivers.
+* **Panel B:** Causal 0–200 ms temporal kernels *h*(τ). Auditory onsets trigger a sharp response peak at 20 ms.
+* **Panel C:** Held-out cross-validated information loss (mbits/spike) when each factor is dropped from the model (LOFO).
 * **Panels D & E:** Strictly out-of-sample 5-fold CV PSTH predictions (navy blue trace) against empirical peristimulus time histograms (grey trace) across coherent and incoherent presentation streams.
 
 ---
@@ -145,7 +142,7 @@ This recording site in primary auditory cortex exhibits sharp acoustic onset sen
 ### Example 2: Multisensory Tracking Neuron (Posterior Ectosylvian Gyrus, PEG)
 *Record: `F1812_Nala` Rec_A Channel 5*
 
-This PEG (secondary auditory cortex) neuron tracks both auditory onsets and visual flashes with high precision. In addition, it displays a confirmed **`AV Onset Coincidence`** term ($\Delta\text{LL}_{\text{CV}} = +0.36\text{ mbits/spike}$, $q = 4.2 \times 10^{-7}$), demonstrating non-linear multisensory burst integration when acoustic and visual rises coincide.
+This PEG (secondary auditory cortex) neuron tracks both auditory onsets and visual flashes with high precision. In addition, it displays a confirmed **`AV Onset Coincidence`** term (ΔLL<sub>CV</sub> = +0.36 mbits/spike, *q* = 4.2 × 10<sup>−7</sup>), demonstrating non-linear multisensory burst integration when rises in acoustic and visual stimuli happen together.
 
 ![Multisensory Neuron Example](docs/images/F1812_Nala_Rec_A_C05_multisensory_example.png)
 
@@ -181,10 +178,10 @@ The pipeline is organized into three sequential, modular stages coordinated by `
 ### Stage 0: Data Extraction (`extract_sessions.py`)
 * **Purpose:** Aligns raw per-block spike times (`*_spiketimes.mat`) with synchronized stimulus files (`stimuli/AVPilot*_SS.mat`) into unified analysis arrays.
 * **Peristimulus Window & Binning:**
-  * Bins spike trains at **20 ms resolution** across a **3.9-second window** ($[-0.400, +3.500)\text{ s}$ relative to stimulus onset, 195 bins total).
-  * The first 10 bins ($[-0.400, -0.200)\text{ s}$) serve as causal padding for the 0–200 ms temporal basis filter, leaving **185 evaluated bins** spanning $[-0.200, +3.500)\text{ s}$ ($200\text{ ms}$ pre-stimulus silence, $3000\text{ ms}$ stimulus presentation, and $500\text{ ms}$ post-stimulus silence).
+  * Bins spike trains at **20 ms resolution** across a **3.9-second window** ([−0.400, +3.500) s relative to stimulus onset, 195 bins total).
+  * The first 10 bins ([−0.400, −0.200) s) serve as causal padding for the 0–200 ms temporal basis filter, leaving **185 evaluated bins** spanning [−0.200, +3.500) s (200 ms pre-stimulus silence, 3000 ms stimulus presentation, and 500 ms post-stimulus silence).
 * **Luminance Calibration:**
-  * Maps physical LED command voltages to photometric luminance ($\text{cd/m}^2$) via shape-preserving monotonic PCHIP spline interpolation from `data_tables/Chamber_LED.csv`.
+  * Maps physical LED command voltages to photometric luminance (cd/m²) via shape-preserving monotonic PCHIP spline interpolation from `data_tables/Chamber_LED.csv`.
 * **Output:**
   * Compressed NumPy array (`output/{animal}_all_blocks_20ms.npz`) containing `envelopes`, `binned_spikes`, and trial/channel indices.
   * Trial metadata table (`output/{animal}_all_blocks_trials.csv`) with stimulus parameters (`Vowel`, `Pitch`, `Coherence`, `vBase`, `vScale`, `block`).
@@ -192,7 +189,7 @@ The pipeline is organized into three sequential, modular stages coordinated by `
 ### Stage 1: Channel Quality Control & Modality Screening (`plot_channel_diagnostics_auto.py`)
 * **Purpose:** Screens recording channels across sessions to identify viable single- and multi-unit recording sites and exclude channels affected by silent gaps (wireless dropouts) or severe session instability.
 * **Two-Level Quality Control:**
-  1. **Trial-Level QC:** Rejects individual trials exhibiting silent gaps $> 0.50\text{ s}$ (wireless signal dropouts) or excessive spike artifacts.
+  1. **Trial-Level QC:** Rejects individual trials exhibiting silent gaps > 0.50 s (wireless signal dropouts) or excessive spike artifacts.
   2. **Session-Level QC (Block Screening):** Evaluates firing rate stability across recording blocks. Blocks showing dead recording channels or extreme baseline rate shifts are excluded.
 * **Sensory Screening & Cortical Mapping:**
   * Computes dynamic range, signal-to-noise ratio (SNR), and stimulus-response fidelity across auditory and visual streams.
@@ -204,12 +201,12 @@ The pipeline is organized into three sequential, modular stages coordinated by `
   * Optional 8-panel diagnostic dashboard figures (`--plots`).
 
 ### Stage 2: Unified Causal NeMoS Poisson GLM (`fit_glm_passive.py`)
-* **Purpose:** Fits a publication-grade 13-factor causal Poisson GLM with 5-fold cross-validation and Leave-One-Factor-Out (LOFO) variable selection across all channels passing Stage 1 QC.
+* **Purpose:** Fits a 13-factor causal Poisson GLM with 5-fold cross-validation and Leave-One-Factor-Out (LOFO) variable selection across all channels passing Stage 1 QC.
 * **Key Methodology:**
   1. **Single Unified Model:** Avoids running contradictory 1-lag and multi-lag models; all temporal kernels, effect sizes, and predictions derive from one unified fit.
   2. **5-Fold Held-Out Cross-Validation:** Stratified 5-fold cross-validation trains models on 80% of trials and predicts the remaining 20% unseen trials out-of-sample.
-  3. **Leave-One-Factor-Out (LOFO) $\Delta\text{LL}$:** Drops factor group $g$ and measures out-of-sample log-likelihood degradation (in mbits/spike) on held-out trials. A paired Wilcoxon signed-rank test with Benjamini–Hochberg FDR correction ($q_{\text{LOFO}} < 0.05$) verifies that the factor genuinely drives neural firing.
-  4. **Trial-Clustered Huber–White Sandwich Covariance:** Full-dataset refit computes directional effect sizes ($\beta \pm 95\%\text{ CIs}$), rate multipliers ($\exp(\beta)$), and omnibus Group Wald tests ($q_{\text{Wald}} < 0.05$) clustered by trial, correcting for Poisson overdispersion and intra-trial temporal autocorrelation.
+  3. **Leave-One-Factor-Out (LOFO) ΔLL:** Drops factor group *g* and measures out-of-sample log-likelihood degradation (in mbits/spike) on held-out trials. A paired Wilcoxon signed-rank test with Benjamini–Hochberg FDR correction (*q*<sub>LOFO</sub> < 0.05) verifies that the factor genuinely drives neural firing.
+  4. **Trial-Clustered Huber–White Sandwich Covariance:** Full-dataset refit computes directional effect sizes (β ± 95% CIs), rate multipliers (exp(β)), and omnibus Group Wald tests (*q*<sub>Wald</sub> < 0.05) clustered by trial, correcting for Poisson overdispersion and intra-trial temporal autocorrelation.
 * **Output:**
   * 5-panel publication dashboards (`output/clean_glm/{unit_id}_passive_glm_dashboard.png`).
   * Factor-level LOFO stats (`{unit_id}_passive_glm_factors.csv`).
@@ -226,7 +223,7 @@ Run both Stage 1 (automated channel screening & QC) and Stage 2 (unified GLM) ac
 python AV_passive_scripts/run_pipeline.py
 ```
 
-Run for a specific animal and recording stream:
+Run for a specific animal and recording stream (hemisphere):
 ```bash
 python AV_passive_scripts/run_pipeline.py --animal F1812_Nala --rec Rec_A
 ```
