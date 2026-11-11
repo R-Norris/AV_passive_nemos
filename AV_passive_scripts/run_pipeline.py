@@ -670,7 +670,20 @@ def run_pipeline(
     elapsed_total = time.perf_counter() - t_start
 
     final_stage1_df = pd.concat(all_s1, ignore_index=True) if all_s1 else None
-    final_stage2_df = pd.concat(all_s2, ignore_index=True) if all_s2 else None
+    if all_s2:
+        final_stage2_df = pd.concat(all_s2, ignore_index=True)
+        if "unit_id" in final_stage2_df.columns:
+            final_stage2_df = final_stage2_df.drop_duplicates(
+                subset=["unit_id"], keep="last"
+            ).reset_index(drop=True)
+        if "animal_id" in final_stage2_df.columns and "rec_name" in final_stage2_df.columns:
+            mask_run = final_stage2_df["animal_id"].isin(animals_to_run) & final_stage2_df[
+                "rec_name"
+            ].isin(recs_to_run)
+            if mask_run.any():
+                final_stage2_df = final_stage2_df.loc[mask_run].reset_index(drop=True)
+    else:
+        final_stage2_df = None
 
     # =========================================================================
     # Final Pipeline Summary
