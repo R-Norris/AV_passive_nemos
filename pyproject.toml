@@ -1,0 +1,19 @@
+[project]
+name = "av-passive-nemos"
+version = "0.1.0"
+description = "Passive audiovisual neural coding GLM pipeline"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "nemos>=0.2.5",
+    "jax",
+    "scikit-learn",
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+    "h5py",
+    "pynapple",
+    "openpyxl",
+]

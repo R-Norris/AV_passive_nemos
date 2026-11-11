@@ -1,0 +1,36 @@
+{
+  "data_root": "E:\\AV_passive_extracted_spikes",
+  "stimuli_dir": "stimuli",
+  "data_tables_dir": "data_tables",
+  "extracted_dir": "output",
+  "diagnostics_dir": "output/diagnostics",
+  "clean_glm_dir": "output/clean_glm",
+  "animals": [
+    "F1812_Nala",
+    "F1813_Rajah",
+    "F1901_Crumble",
+    "F1902_Eclair",
+    "F2001_Gnocchi"
+  ],
+  "recording_streams": [
+    "Rec_A",
+    "Rec_B"
+  ],
+  "depth": "auto",
+  "depth_table": "Elair_Reps_GLM.csv",
+  "channel_field_table": "Ferret_Side_Chan_Field.csv",
+  "channels": null,
+  "stimulus_set": null,
+  "stage1_diagnostics": {
+    "min_rate_hz": 5.0,
+    "max_silent_gap_s": 0.50,
+    "min_pass_sessions": 2,
+    "min_clean_trials": 100,
+    "skip_plots": true
+  },
+  "stage2_glm": {
+    "cv_folds": 5,
+    "reg_strength": 0.001,
+    "filter_sessions": true
+  }
+}

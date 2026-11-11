@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+__pycache__/
+*.pyc
+
+# VS Code & editor settings
+.vscode/
+.idea/
+
+# Large intermediate binary arrays (can be regenerated from raw data)
+output/**/*.npz
+output/**/*.npy
+output/*.npz
+output/*.npy
+
+# Un-tracked exploratory archive
+output/_early_testing/
+
+# Generated figure outputs (exclude large figures from git history)
+output/**/*.png
+output/*.png
+output/**/*.pdf
+output/*.pdf
+# Keep key methodological illustration
+!output/basis_functions_explained.png
